@@ -9,6 +9,9 @@ const Profile = () => {
     const [error, setError] = useState<string>('');
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
+        username: '',
+        firstName: '',
+        lastName: '',
         monthlyIncome: 0,
         savings: 0,
         targetExpenses: 0
@@ -25,6 +28,9 @@ const Profile = () => {
                 const res = await getProfile(token);
                 setProfile(res.data);
                 setFormData({
+                    username: res.data.username || '',
+                    firstName: res.data.firstName || '',
+                    lastName: res.data.lastName || '',
                     monthlyIncome: res.data.monthlyIncome || 0,
                     savings: res.data.savings || 0,
                     targetExpenses: res.data.targetExpenses || 0
@@ -38,7 +44,15 @@ const Profile = () => {
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await updateProfile(formData);
+            const payload: any = {
+                username: formData.username,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                monthlyIncome: formData.monthlyIncome,
+                savings: formData.savings,
+                targetExpenses: formData.targetExpenses
+            };
+            const res = await updateProfile(payload);
             setProfile(res.data);
             setIsEditing(false);
             alert('Profile updated successfully!');
@@ -87,6 +101,15 @@ const Profile = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div className="bg-blue-100 p-2 rounded-lg">
+                                <UserIcon className="text-blue-600" size={20} />
+                            </div>
+                            <div>
+                                <p className="text-base text-gray-600">Name</p>
+                                <p className="font-bold text-lg text-gray-900">{(profile.firstName || '') + (profile.lastName ? ' ' + profile.lastName : '')}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                             <div className="bg-green-100 p-2 rounded-lg">
                                 <Mail className="text-green-600" size={20} />
                             </div>
@@ -123,6 +146,38 @@ const Profile = () => {
 
                     {isEditing ? (
                         <form onSubmit={handleUpdate} className="space-y-6">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-2">Username</label>
+                                <input
+                                    type="text"
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                    placeholder="username"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700 mb-2">First Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.firstName}
+                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                        placeholder="First name"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.lastName}
+                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                        placeholder="Last name"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <DollarSign size={18} className="text-blue-600" />

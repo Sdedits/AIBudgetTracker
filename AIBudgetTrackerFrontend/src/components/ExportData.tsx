@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Download, FileText, Table, Cloud } from 'lucide-react';
 import { getTransactions } from '../services/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 const ExportData: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -22,8 +25,8 @@ const ExportData: React.FC = () => {
         });
       }
 
-      // Create CSV content
       const headers = ['ID', 'Type', 'Amount', 'Category', 'Description', 'Date'];
+      
       const csvContent = [
         headers.join(','),
         ...filteredTransactions.map((t: any) => 
@@ -31,13 +34,14 @@ const ExportData: React.FC = () => {
         )
       ].join('\n');
 
-      // Download CSV
+      // Create blob and download
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+      
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting to CSV:', error);
@@ -50,12 +54,122 @@ const ExportData: React.FC = () => {
   const exportToPDF = async () => {
     try {
       setLoading(true);
-      alert('PDF export feature coming soon! For now, please use the browser\'s print function (Ctrl+P) to save as PDF.');
-      // In a real implementation, you would use a library like jsPDF or pdfmake
-      // Example with jsPDF:
-      // const doc = new jsPDF();
-      // doc.text('Financial Report', 10, 10);
-      // doc.save('report.pdf');
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let currentY = 20; 
+
+      // Header
+      doc.setFontSize(20);
+      doc.text('BudgetWise Financial Report', 14, currentY);
+      currentY += 10;
+
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      const dateText = `Generated on: ${new Date().toLocaleDateString()}`;
+      doc.text(dateText, 14, currentY);
+      currentY += 10;
+
+      if (startDate && endDate) {
+        doc.text(`Period: ${startDate} to ${endDate}`, 14, currentY);
+        currentY += 10;
+      }
+
+      // Capture Graphs (Pie/Bar Charts) from DOM
+      const graphsElement = document.getElementById('dashboard-graphs');
+      if (graphsElement) {
+        try {
+            // Scale 2 provides better resolution for PDF
+            const canvas = await html2canvas(graphsElement, { scale: 2 }); 
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = doc.getImageProperties(imgData);
+            
+            // Calculate width/height to fit PDF margins
+            const pdfImgWidth = pageWidth - 28; 
+            const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+
+            // Add new page if image overflows
+            if (currentY + pdfImgHeight > pageHeight) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.addImage(imgData, 'PNG', 14, currentY, pdfImgWidth, pdfImgHeight);
+            currentY += pdfImgHeight + 10;
+        } catch (err) {
+            console.warn("Could not capture graphs:", err);
+        }
+      }
+
+      // Capture AI Analytics Text from DOM
+      const analyticsElement = document.getElementById('ai-analytics');
+      if (analyticsElement) {
+        try {
+            const canvas = await html2canvas(analyticsElement, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = doc.getImageProperties(imgData);
+            
+            const pdfImgWidth = pageWidth - 28;
+            const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+
+            if (currentY + pdfImgHeight > pageHeight) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.text("AI Analytics & Insights", 14, currentY - 2);
+            doc.addImage(imgData, 'PNG', 14, currentY, pdfImgWidth, pdfImgHeight);
+            currentY += pdfImgHeight + 15;
+        } catch (err) {
+            console.warn("Could not capture analytics:", err);
+        }
+      }
+
+      // Fetch Data for Table
+      const response = await getTransactions();
+      const transactions = response.data;
+      
+      let filteredTransactions = transactions;
+      if (startDate && endDate) {
+        filteredTransactions = transactions.filter((t: any) => {
+          const transactionDate = new Date(t.transactionDate);
+          return transactionDate >= new Date(startDate) && transactionDate <= new Date(endDate);
+        });
+      }
+
+      const tableColumn = ["Date", "Type", "Category", "Description", "Amount"];
+      const tableRows: any[] = [];
+
+      filteredTransactions.forEach((t: any) => {
+        const transactionData = [
+          new Date(t.transactionDate).toLocaleDateString(),
+          t.type.charAt(0).toUpperCase() + t.type.slice(1),
+          t.category,
+          t.description || '-',
+          `${t.amount}`
+        ];
+        tableRows.push(transactionData);
+      });
+
+      if (currentY > pageHeight - 40) {
+          doc.addPage();
+          currentY = 20;
+      }
+
+      doc.text("Detailed Transaction History", 14, currentY);
+      
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: currentY + 5,
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+      });
+
+      doc.save(`budgetwise_complete_report_${new Date().toISOString().split('T')[0]}.pdf`);
+
     } catch (error) {
       console.error('Error exporting to PDF:', error);
       alert('Failed to export data to PDF');
@@ -66,7 +180,6 @@ const ExportData: React.FC = () => {
 
   const backupToCloud = () => {
     alert('Cloud backup feature coming soon! This will allow you to backup your data to Google Drive or Dropbox.');
-    // In a real implementation, you would integrate with Google Drive or Dropbox APIs
   };
 
   return (
@@ -101,9 +214,8 @@ const ExportData: React.FC = () => {
         </div>
       </div>
 
-      {/* Export Options */}
+      {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* CSV Export */}
         <button
           onClick={exportToCSV}
           disabled={loading}
@@ -121,7 +233,6 @@ const ExportData: React.FC = () => {
           </div>
         </button>
 
-        {/* PDF Export */}
         <button
           onClick={exportToPDF}
           disabled={loading}
@@ -129,17 +240,16 @@ const ExportData: React.FC = () => {
         >
           <div className="flex flex-col items-center text-center">
             <FileText className="text-red-600 mb-3" size={48} />
-            <h3 className="font-semibold mb-2">Export to PDF</h3>
+            <h3 className="font-semibold mb-2">Export Report</h3>
             <p className="text-sm text-gray-600">
-              Generate a formatted PDF report of your financial data for printing or archiving
+              Generate a complete PDF report including Graphs, AI Insights, and Data
             </p>
             <div className="mt-4 bg-red-100 text-red-700 px-4 py-2 rounded font-medium">
-              Download PDF
+              Download Report
             </div>
           </div>
         </button>
 
-        {/* Cloud Backup */}
         <button
           onClick={backupToCloud}
           disabled={loading}
@@ -156,17 +266,6 @@ const ExportData: React.FC = () => {
             </div>
           </div>
         </button>
-      </div>
-
-      {/* Instructions */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-semibold mb-2 text-blue-900">Export Tips:</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• CSV files can be opened in Excel, Google Sheets, or any spreadsheet application</li>
-          <li>• Use date range filter to export specific time periods</li>
-          <li>• Regular backups help protect your financial data</li>
-          <li>• PDF exports are great for sharing reports with financial advisors</li>
-        </ul>
       </div>
     </div>
   );

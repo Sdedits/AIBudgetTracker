@@ -24,7 +24,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('token', userToken);
             navigate('/profile');
         } catch (err) {
-            alert('Login failed! Please check your credentials.');
+            // Normalize and propagate server error message so UI can show friendly messages
+            let msg = 'Login failed! Please check your credentials.';
+            try {
+                const anyErr: any = err;
+                if (anyErr && anyErr.response) {
+                    const data = anyErr.response.data;
+                    if (typeof data === 'string') {
+                        msg = data;
+                    } else if (data && typeof data.message === 'string') {
+                        msg = data.message;
+                    }
+                } else if (err instanceof Error) {
+                    msg = err.message;
+                }
+            } catch (e) {
+                // ignore parsing errors and use default message
+            }
+            throw new Error(msg);
         }
     };
 

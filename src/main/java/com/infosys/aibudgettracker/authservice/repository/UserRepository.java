@@ -12,4 +12,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
 
     Boolean existsByUsername(String username);
+
+    // Find users by admin approval status
+    java.util.List<User> findByAdminApprovedFalse();
+
+    // Find user by id
+    java.util.Optional<User> findById(java.lang.Long id);
 }

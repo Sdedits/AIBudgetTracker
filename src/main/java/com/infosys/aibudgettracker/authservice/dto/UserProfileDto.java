@@ -16,4 +16,6 @@ public class UserProfileDto {
     private Double monthlyIncome;
     private Double savings;
     private Double targetExpenses;
+    private String firstName;
+    private String lastName;
 }

@@ -43,22 +43,31 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         // If we have a username and the user is not already authenticated...
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // ...load the user details from the database.
-            UserDetails userDetails = userRepository.findByUsername(username)
-                    .map(user -> org.springframework.security.core.userdetails.User
-                            .withUsername(user.getUsername())
-                            .password(user.getPassword())
-                            .authorities(new java.util.ArrayList<>()) // Add roles/authorities here if you have them
-                            .build())
-                    .orElse(null);
+            // Load the user entity from the database so we can check banned status
+            var userOpt = userRepository.findByUsername(username);
+            if (userOpt.isPresent()) {
+                var user = userOpt.get();
 
-            // If the user exists and the token is valid...
-            if (userDetails != null && jwtUtil.validateToken(jwt)) {
-                // ...create an authentication token and set it in the security context.
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                // If user is banned, reject the request
+                if (user.isBanned()) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write("Error: User is banned.");
+                    return;
+                }
+
+                // Build UserDetails and validate token
+                UserDetails userDetails = org.springframework.security.core.userdetails.User
+                        .withUsername(user.getUsername())
+                        .password(user.getPassword())
+                        .authorities(new java.util.ArrayList<>())
+                        .build();
+
+                if (jwtUtil.validateToken(jwt)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
         }
         filterChain.doFilter(request, response);

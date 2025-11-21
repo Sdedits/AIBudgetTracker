@@ -35,6 +35,18 @@ public class User {
     @Column
     private Double targetExpenses;
 
+    @Column
+    private String firstName;
+
+    @Column
+    private String lastName;
+    
+    @Column(nullable = false)
+    private boolean banned = false;
+
+    @Column(nullable = false)
+    private boolean adminApproved = false;
+
     public User(String username, String email, String password) {
         this.username = username;
         this.email = email;
@@ -43,6 +55,6 @@ public class User {
     }
     
     public enum Role {
-        USER, ADMIN
+        USER, ADMIN, OWNER
     }
 }

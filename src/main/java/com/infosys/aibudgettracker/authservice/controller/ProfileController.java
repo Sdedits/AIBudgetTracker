@@ -25,13 +25,15 @@ public class ProfileController {
         return userRepository.findByUsername(currentUsername)
                 .map(user -> {
                     UserProfileDto userProfile = new UserProfileDto(
-                        user.getId(), 
-                        user.getUsername(), 
+                        user.getId(),
+                        user.getUsername(),
                         user.getEmail(),
                         user.getRole(),
                         user.getMonthlyIncome(),
                         user.getSavings(),
-                        user.getTargetExpenses()
+                        user.getTargetExpenses(),
+                        user.getFirstName(),
+                        user.getLastName()
                     );
                     return ResponseEntity.ok(userProfile);
                 })
@@ -45,9 +47,18 @@ public class ProfileController {
         
         return userRepository.findByUsername(currentUsername)
                 .map(user -> {
+                    // allow updating username if not taken
+                    if (profileDto.getUsername() != null && !profileDto.getUsername().equals(currentUsername)) {
+                        if (userRepository.existsByUsername(profileDto.getUsername())) {
+                            return ResponseEntity.badRequest().body("Username already taken");
+                        }
+                        user.setUsername(profileDto.getUsername());
+                    }
                     user.setMonthlyIncome(profileDto.getMonthlyIncome());
                     user.setSavings(profileDto.getSavings());
                     user.setTargetExpenses(profileDto.getTargetExpenses());
+                    user.setFirstName(profileDto.getFirstName());
+                    user.setLastName(profileDto.getLastName());
                     User updatedUser = userRepository.save(user);
                     
                     UserProfileDto updatedProfile = new UserProfileDto(
@@ -57,7 +68,9 @@ public class ProfileController {
                         updatedUser.getRole(),
                         updatedUser.getMonthlyIncome(),
                         updatedUser.getSavings(),
-                        updatedUser.getTargetExpenses()
+                        updatedUser.getTargetExpenses(),
+                        updatedUser.getFirstName(),
+                        updatedUser.getLastName()
                     );
                     return ResponseEntity.ok(updatedProfile);
                 })

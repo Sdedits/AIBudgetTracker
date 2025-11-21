@@ -136,3 +136,71 @@ export const getAnalytics = (year: number, month: number) => {
         params: { year, month }
     });
 };
+
+export const predictNextMonthExpenses = (months = 12) => {
+    return api.get('/analytics/predict-next-month', {
+        params: { months }
+    });
+};
+
+// Admin APIs
+export const getAllUsers = () => {
+    return api.get('/admin/users');
+};
+
+export const banUser = (id: number) => {
+    return api.post(`/admin/users/${id}/ban`);
+};
+
+export const unbanUser = (id: number) => {
+    return api.post(`/admin/users/${id}/unban`);
+};
+
+export const getAdminRequests = () => {
+    return api.get('/admin/admin-requests');
+};
+
+export const approveAdmin = (id: number) => {
+    return api.post(`/admin/admin-requests/${id}/approve`);
+};
+
+export const revokeAdmin = (id: number) => {
+    return api.post(`/admin/admin-requests/${id}/revoke`);
+};
+
+// Forum APIs
+export const getForumPosts = (page = 0, size = 20) => {
+    return api.get(`/forum/posts`, { params: { page, size } });
+};
+
+export const createForumPost = (content: string) => {
+    return api.post('/forum/posts', { content });
+};
+
+export const updateForumPost = (postId: number, content: string) => {
+    return api.put(`/forum/posts/${postId}`, { content });
+};
+
+export const deleteForumPost = (postId: number) => {
+    return api.delete(`/forum/posts/${postId}`);
+};
+
+export const likeForumPost = (postId: number) => {
+    return api.post(`/forum/posts/${postId}/like`);
+};
+
+export const addForumComment = (postId: number, content: string) => {
+    return api.post(`/forum/posts/${postId}/comments`, { content });
+};
+
+export const likeForumComment = (commentId: number) => {
+    return api.post(`/forum/comments/${commentId}/like`);
+};
+
+export const updateForumComment = (commentId: number, content: string) => {
+    return api.put(`/forum/comments/${commentId}`, { content });
+};
+
+export const deleteForumComment = (commentId: number) => {
+    return api.delete(`/forum/comments/${commentId}`);
+};

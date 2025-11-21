@@ -2,10 +2,14 @@ export interface User {
     id: number;
     username: string;
     email: string;
-    role: 'USER' | 'ADMIN';
+    role: 'USER' | 'ADMIN' | 'OWNER';
+    firstName?: string;
+    lastName?: string;
     monthlyIncome?: number;
     savings?: number;
     targetExpenses?: number;
+    banned?: boolean;
+    adminApproved?: boolean;
 }
 
 export interface AuthResponse {

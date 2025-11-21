@@ -13,7 +13,8 @@ const SavingsGoals: React.FC = () => {
   const [goals, setGoals] = useState<SavingsGoalProgress[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
-  const [addAmount, setAddAmount] = useState('');
+  // Keep add amount values per-goal to avoid sharing the same input across all goal cards
+  const [addAmounts, setAddAmounts] = useState<Record<number, string>>({});
   
   const { register, handleSubmit, reset } = useForm<SavingsGoalRequest>();
 
@@ -52,14 +53,20 @@ const SavingsGoals: React.FC = () => {
   };
 
   const handleAddToGoal = async (goalId: number) => {
-    if (!addAmount || isNaN(parseFloat(addAmount)) || parseFloat(addAmount) <= 0) {
+    const value = addAmounts[goalId] || '';
+    if (!value || isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
       alert('Please enter a valid amount');
       return;
     }
 
     try {
-      await addToSavingsGoal(goalId, parseFloat(addAmount));
-      setAddAmount('');
+      await addToSavingsGoal(goalId, parseFloat(value));
+      // reset only this goal's input
+      setAddAmounts(prev => {
+        const copy = { ...prev };
+        delete copy[goalId];
+        return copy;
+      });
       fetchGoals();
     } catch (error) {
       console.error('Error adding to savings goal:', error);
@@ -251,8 +258,8 @@ const SavingsGoals: React.FC = () => {
                       step="0.01"
                       min="0.01"
                       placeholder="Amount to add"
-                      value={addAmount}
-                      onChange={(e) => setAddAmount(e.target.value)}
+                      value={addAmounts[goal.id] || ''}
+                      onChange={(e) => setAddAmounts(prev => ({ ...prev, [goal.id]: e.target.value }))}
                       className="flex-1 p-2 border rounded text-sm"
                     />
                     <button
